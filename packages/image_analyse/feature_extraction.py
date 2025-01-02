@@ -11,12 +11,27 @@ from skimage.feature import local_binary_pattern
 
 IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png']
 
+#TODO: Über settings Anzahl der Nachkommastellen setzten
+
 #TODO: Options die Kovertierung in grayscale regelt
 def get_images_and_convert_to_grayscale(path:str | PathLike[str]) -> Tuple[List[np.ndarray], List[str]]:
+    """
+    Loads all images from a given folder, converts them to grayscale, and returns them as NumPy arrays.
+
+    Parameters:
+        path (str | PathLike[str]): Path to the folder containing the images.
+
+    Returns:
+        Tuple[List[np.ndarray], List[str]]:
+            - A list of images converted to single-channel grayscale, represented as NumPy arrays.
+            - A list of corresponding image file names.
+
+    Notes:
+        - Prints information about the folder, number of images, and the dimensions of the first image.
+    """
     # image_names = [f for f in os.listdir(path) if f.lower().endswith(IMAGE_EXTENSION.lower())]  # comparison case insensitive
     image_names = [f for f in os.listdir(path) if
                    os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS]  # comparison case insensitive
-    print(image_names)
 
     # read images one-by-one and convert to single channel grayscale
     images = [ImageOps.grayscale(Image.open(os.path.join(path, i))).convert('L') for i in image_names]
