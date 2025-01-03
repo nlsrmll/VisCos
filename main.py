@@ -1,16 +1,15 @@
 
 from packages.image_analyse.DataReader import ImageDataFrame
-from packages.image_analyse.feature_extraction import get_intensity, get_sharpness
+from packages.image_analyse.feature_extraction import get_intensity, get_sharpness, get_contrast
 
 path_for_images = "./data/Unruhig_Format16-9"
 
-def hello_world(test):
-    print("Hello World!")
 
 images = ImageDataFrame(path_for_images)
 
-images.apply_method_and_save_to_column(get_intensity)
-images.apply_method_and_save_to_column(get_sharpness)
+
+images.apply_method_and_save_to_column(get_contrast)
 
 
 
+images.show_histogram_of("contrast")

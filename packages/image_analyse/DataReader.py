@@ -10,6 +10,8 @@ from PIL import Image, ImageOps
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import DataFrame
 
+from packages.visualization.plotly import histogram_as_bar
+
 IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png']
 
 #TODO: Über settings Anzahl der Nachkommastellen setzten
@@ -52,6 +54,15 @@ class ImageDataFrame:
 
 
         self.data[column_name] = self.data[ImageReaderColumns.DATA.value].apply(method)
+
+    def show_histogram_of(self, column_name: str):
+
+        try:
+            data = self.data[column_name]
+            histogram_as_bar(data=data, title=f"Histogram - {column_name.title()}", x_label=column_name.title(), y_label="Number of Images")
+        except KeyError:
+            raise KeyError(f"Column name: {column_name} does not exist.") from None
+
 
 
 
