@@ -1,48 +1,13 @@
-import os
-from scipy import signal
-from os import PathLike
-from typing import List, Tuple, Literal
 
-from PIL import Image, ImageOps
+
+from scipy import signal
+from typing import Tuple, Literal
+from PIL import Image
 import numpy as np
 import cv2 as cv
 from numpy.fft import fftshift, fft2
 from skimage.feature import local_binary_pattern
 
-IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png']
-
-#TODO: Über settings Anzahl der Nachkommastellen setzten
-
-#TODO: Options die Kovertierung in grayscale regelt
-def get_images_and_convert_to_grayscale(path:str | PathLike[str]) -> Tuple[List[np.ndarray], List[str]]:
-    """
-    Loads all images from a given folder, converts them to grayscale, and returns them as NumPy arrays.
-
-    Parameters:
-        path (str | PathLike[str]): Path to the folder containing the images.
-
-    Returns:
-        Tuple[List[np.ndarray], List[str]]:
-            - A list of images converted to single-channel grayscale, represented as NumPy arrays.
-            - A list of corresponding image file names.
-
-    Notes:
-        - Prints information about the folder, number of images, and the dimensions of the first image.
-    """
-    # image_names = [f for f in os.listdir(path) if f.lower().endswith(IMAGE_EXTENSION.lower())]  # comparison case insensitive
-    image_names = [f for f in os.listdir(path) if
-                   os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS]  # comparison case insensitive
-
-    # read images one-by-one and convert to single channel grayscale
-    images = [ImageOps.grayscale(Image.open(os.path.join(path, i))).convert('L') for i in image_names]
-
-    # Print Info
-    print('Folder Name: ' + os.path.split(path)[-1])
-    print(f'|__ Number of images: {len(image_names)}')
-    print(f'|__ Image dimension: {np.array(images[0]).shape}')
-    print()
-
-    return [np.array(ImageOps.grayscale(i)) for i in images], image_names
 
 def get_intensity(image: np.ndarray) -> np.floating:
     """
@@ -55,6 +20,7 @@ def get_intensity(image: np.ndarray) -> np.floating:
         np.floating: The mean intensity of the image.
     """
     return np.mean(image)
+
 
 def get_sharpness(image: np.ndarray) -> float:
     """

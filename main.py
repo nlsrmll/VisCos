@@ -1,16 +1,16 @@
-import packages.image_analyse.feature_extraction as fe
-import packages.visualization.plotly as plt
+
+from packages.image_analyse.DataReader import ImageDataFrame
+from packages.image_analyse.feature_extraction import get_intensity, get_sharpness
 
 path_for_images = "./data/Unruhig_Format16-9"
 
-pictures, picture_names = fe.get_images_and_convert_to_grayscale(path_for_images)
+def hello_world(test):
+    print("Hello World!")
 
-data = []
+images = ImageDataFrame(path_for_images)
 
-for picture in pictures:
-    data.append(fe.get_contrast(picture))
+images.apply_method_and_save_to_column(get_intensity)
+images.apply_method_and_save_to_column(get_sharpness)
 
-
-plt.histogram_as_bar(data)
 
 
