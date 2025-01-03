@@ -1,6 +1,6 @@
 
 from packages.image_analyse.DataReader import ImageDataFrame
-from packages.image_analyse.feature_extraction import get_intensity, get_sharpness, get_contrast
+from packages.image_analyse.feature_extraction import get_contrast
 
 path_for_images = "./data/Unruhig_Format16-9"
 

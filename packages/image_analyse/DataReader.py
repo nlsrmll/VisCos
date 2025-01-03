@@ -58,8 +58,7 @@ class ImageDataFrame:
     def show_histogram_of(self, column_name: str):
 
         try:
-            data = self.data[column_name]
-            histogram_as_bar(data=data, title=f"Histogram - {column_name.title()}", x_label=column_name.title(), y_label="Number of Images")
+            histogram_as_bar(df=self.data[['picture_names', column_name]], title=f"Histogram - {column_name}", x_label=column_name, y_label="Number of Images")
         except KeyError:
             raise KeyError(f"Column name: {column_name} does not exist.") from None
 

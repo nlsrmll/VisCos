@@ -1,5 +1,3 @@
-
-
 from scipy import signal
 from typing import Tuple, Literal
 from PIL import Image
