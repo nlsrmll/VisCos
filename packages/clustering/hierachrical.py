@@ -1,4 +1,4 @@
-from scipy.cluster.hierarchy import linkage, dendrogram, fcluster, to_tree, ClusterNode
+from scipy.cluster.hierarchy import linkage, ClusterNode
 import plotly.figure_factory as ff
 import numpy as np
 

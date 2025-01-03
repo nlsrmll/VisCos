@@ -460,8 +460,10 @@ def compute_contours(image:np.ndarray):
 
     # add padding to avoid problems in the computation (e.g., contours around the hole image)
     sz_border = 4
+    # ruff: noqa
     img_bin_border = cv.copyMakeBorder(img_bin, sz_border, sz_border, sz_border, sz_border, cv.BORDER_CONSTANT,
                                       value=(0, 0, 0))
+    # ruff: noqa
 
 
     contours, _ = cv.findContours(img_bin, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)

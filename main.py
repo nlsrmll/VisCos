@@ -1,12 +1,16 @@
 import packages.image_analyse.feature_extraction as fe
-from packages.visualization.plotly import histogram
+import packages.visualization.plotly as plt
 
 path_for_images = "./data/Unruhig_Format16-9"
 
-pictures = fe.get_images_and_convert_to_grayscale(path_for_images)
+pictures, picture_names = fe.get_images_and_convert_to_grayscale(path_for_images)
 
-print(len(pictures))
+data = []
+
+for picture in pictures:
+    data.append(fe.get_contrast(picture))
 
 
+plt.histogram_as_bar(data)
 
 
