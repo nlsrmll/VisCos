@@ -32,6 +32,7 @@ def get_sharpness(image: np.ndarray) -> float:
     """
     return cv.Laplacian(image, cv.CV_32F).var()
 
+
 def get_contrast(image: np.ndarray) -> np.floating:
     """
     Calculates the contrast of an image using the standard deviation of pixel intensities.
@@ -43,6 +44,7 @@ def get_contrast(image: np.ndarray) -> np.floating:
         np.floating: The contrast of the image, measured as the standard deviation of pixel values.
     """
     return np.std(image)
+
 
 def get_bw_ration(image: np.ndarray) -> np.floating:
     """
@@ -57,6 +59,7 @@ def get_bw_ration(image: np.ndarray) -> np.floating:
     black_pixels = np.sum(image < 128)
     white_pixels = np.sum(image >= 128)
     return black_pixels / white_pixels
+
 
 def get_bw_ratio_otsu(image: np.ndarray) -> np.floating:
     """
@@ -75,6 +78,7 @@ def get_bw_ratio_otsu(image: np.ndarray) -> np.floating:
     white_pixels = np.sum(image >= thresh)
 
     return black_pixels / white_pixels
+
 
 def get_entropy(image: np.ndarray) -> float:
     """
@@ -95,7 +99,10 @@ def get_entropy(image: np.ndarray) -> float:
 
     return entropy
 
-def get_histogram(image: np.ndarray, bins_:int, range_:Tuple[int, int]=(0, 255)) -> np.ndarray:
+
+def get_histogram(
+    image: np.ndarray, bins_: int, range_: Tuple[int, int] = (0, 255)
+) -> np.ndarray:
     """
     Computes the histogram of an image.
 
@@ -110,7 +117,7 @@ def get_histogram(image: np.ndarray, bins_:int, range_:Tuple[int, int]=(0, 255))
     return np.histogram(image.ravel(), bins=bins_, range=range_, density=False)[0]
 
 
-def get_image_spectrum(image: np.ndarray, nbins:int=100, lowcut:int=2):
+def get_image_spectrum(image: np.ndarray, nbins: int = 100, lowcut: int = 2):
     """
     Computes the amplitude spectrum of an image and fits a line to the log-log plot
     of amplitude vs. frequency. This function provides information about the frequency
@@ -155,7 +162,7 @@ def get_image_spectrum(image: np.ndarray, nbins:int=100, lowcut:int=2):
     else:
         y = (y - (rows + 1) / 2) / rows
 
-    radius = np.sqrt(x ** 2 + y ** 2)
+    radius = np.sqrt(x**2 + y**2)
     radius = np.round(radius / np.max(radius) * (nbins - 1))
 
     radius = radius.astype(np.int64)
@@ -171,7 +178,7 @@ def get_image_spectrum(image: np.ndarray, nbins:int=100, lowcut:int=2):
     # Generate corrected frequency scale for each quantised frequency bin.
     # Note that the maximum frequency is sqrt(0.5) corresponding to the
     # points in the corners of the spectrum
-    frequency = np.arange(nbins) / (nbins - 1) * (np.sqrt(.5))
+    frequency = np.arange(nbins) / (nbins - 1) * (np.sqrt(0.5))
 
     # Find first index value beyond the specified histogram cutoff
     fst = int(round(nbins * lowcut / 100 + 1))
@@ -180,7 +187,8 @@ def get_image_spectrum(image: np.ndarray, nbins:int=100, lowcut:int=2):
 
     return amp, frequency, fst, p
 
-def get_slope (image:np.ndarray) -> float:
+
+def get_slope(image: np.ndarray) -> float:
     """
     Calculates the slope of the log-log plot of amplitude vs. frequency from the image spectrum.
 
@@ -200,7 +208,10 @@ def get_slope (image:np.ndarray) -> float:
     _, _, _, p = get_image_spectrum(hann_image)
     return p[0]
 
-def resize_image_with_k_nearst(image: np.ndarray, size:Tuple[int, int]=(256, 256)) -> np.ndarray:
+
+def resize_image_with_k_nearst(
+    image: np.ndarray, size: Tuple[int, int] = (256, 256)
+) -> np.ndarray:
     """
     Resizes an image to the specified size using k-nearest neighbor interpolation.
 
@@ -214,6 +225,7 @@ def resize_image_with_k_nearst(image: np.ndarray, size:Tuple[int, int]=(256, 256
     pil_imag = Image.fromarray(image)
     resized_image = pil_imag.resize(size, resample=Image.NEAREST)
     return np.asarray(resized_image)
+
 
 def apply_hanning_window(image: np.ndarray) -> np.ndarray:
     """
@@ -229,7 +241,8 @@ def apply_hanning_window(image: np.ndarray) -> np.ndarray:
     hann_window2d = np.outer(hann_window, hann_window)
     return image * hann_window2d
 
-def get_lbp_histogram(image:np.ndarray, P_:int=24, R_:int=3) -> np.ndarray:
+
+def get_lbp_histogram(image: np.ndarray, P_: int = 24, R_: int = 3) -> np.ndarray:
     """
     Computes the Local Binary Pattern (LBP) histogram of an image.
 
@@ -241,12 +254,12 @@ def get_lbp_histogram(image:np.ndarray, P_:int=24, R_:int=3) -> np.ndarray:
     Returns:
         np.ndarray: The histogram of the LBP image.
     """
-    lbp = local_binary_pattern(image, P_, R_, method='uniform')
+    lbp = local_binary_pattern(image, P_, R_, method="uniform")
     n_bins = int(lbp.max() + 1)
     return get_histogram(lbp, n_bins, (0, n_bins))
 
 
-def get_fractal_dimension(image:np.ndarray, threshold:float) -> float:
+def get_fractal_dimension(image: np.ndarray, threshold: float) -> float:
     """
     Computes the fractal dimension of a 2D image using the box-counting method.
 
@@ -263,20 +276,22 @@ def get_fractal_dimension(image:np.ndarray, threshold:float) -> float:
         - Based on the box-counting method for fractal dimension estimation.
         - Adapted from: https://stackoverflow.com/questions/44793221/python-fractal-box-count-fractal-dimension
     """
-    assert (len(image.shape) == 2)
+    assert len(image.shape) == 2
 
     # From https://github.com/rougier/numpy-100 (#87)
     def boxcount(np_img, k):
         S = np.add.reduceat(
             np.add.reduceat(np_img, np.arange(0, np_img.shape[0], k), axis=0),
-            np.arange(0, np_img.shape[1], k), axis=1)
+            np.arange(0, np_img.shape[1], k),
+            axis=1,
+        )
 
         # We count non-empty (0) and non-full boxes (k*k)
         return len(np.where((S > 0) & (S < k * k))[0])
 
     # Transform np_img into a binary array
     maximum = np.max(image)  # better: take theoretical maximum
-    image = (image < threshold * maximum)
+    image = image < threshold * maximum
 
     # Minimal dimension of image
     p = min(image.shape)
@@ -303,7 +318,7 @@ def get_fractal_dimension(image:np.ndarray, threshold:float) -> float:
     return -coefficients[0]
 
 
-def get_edges(image:np.ndarray) -> np.ndarray:
+def get_edges(image: np.ndarray) -> np.ndarray:
     """
     Detects edges in an image using the Canny edge detection algorithm.
 
@@ -317,7 +332,7 @@ def get_edges(image:np.ndarray) -> np.ndarray:
     return edges
 
 
-def get_edge_density(image:np.ndarray) -> float:
+def get_edge_density(image: np.ndarray) -> float:
     """
     Calculates the edge density of an image, which is the ratio of edge pixels to the total number of pixels.
 
@@ -332,7 +347,9 @@ def get_edge_density(image:np.ndarray) -> float:
     return np.count_nonzero(edges) / (edges.shape[0] * edges.shape[1])
 
 
-def get_corners(image:np.ndarray, block_size:int = 2, kernel_size:int=3, k:int=0.04) -> np.ndarray:
+def get_corners(
+    image: np.ndarray, block_size: int = 2, kernel_size: int = 3, k: int = 0.04
+) -> np.ndarray:
     """
     Detects corners in an image using the Harris corner detection algorithm.
 
@@ -348,13 +365,13 @@ def get_corners(image:np.ndarray, block_size:int = 2, kernel_size:int=3, k:int=0
 
     corners = cv.cornerHarris(image, blockSize=block_size, ksize=kernel_size, k=k)
 
-
     corners = cv.dilate(corners, None)
     threshold = 0.01 * corners.max()
     corner_mask = corners > threshold
     corners = corner_mask.astype(np.uint8)
 
     return corners
+
 
 def get_corner_density(image: np.ndarray) -> float:
     """
@@ -375,7 +392,7 @@ def get_corner_density(image: np.ndarray) -> float:
     return np.count_nonzero(corners) / (image.shape[0] * image.shape[1])
 
 
-def get_corner_portion(image:np.ndarray) -> float:
+def get_corner_portion(image: np.ndarray) -> float:
     """
     Calculates the ratio of corner pixels to edge pixels in a grayscale image.
 
@@ -397,7 +414,7 @@ def get_corner_portion(image:np.ndarray) -> float:
     return ratio
 
 
-def compute_contours(image:np.ndarray):
+def compute_contours(image: np.ndarray):
     """
     Computes the contours of a binary image after resizing and preprocessing.
 
@@ -425,29 +442,34 @@ def compute_contours(image:np.ndarray):
     # add padding to avoid problems in the computation (e.g., contours around the hole image)
     sz_border = 4
     # ruff: noqa
-    img_bin_border = cv.copyMakeBorder(img_bin, sz_border, sz_border, sz_border, sz_border, cv.BORDER_CONSTANT,
-                                      value=(0, 0, 0))
+    img_bin_border = cv.copyMakeBorder(
+        img_bin,
+        sz_border,
+        sz_border,
+        sz_border,
+        sz_border,
+        cv.BORDER_CONSTANT,
+        value=(0, 0, 0),
+    )
     # ruff: noqa
 
-
     contours, _ = cv.findContours(img_bin, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-
 
     return contours
 
 
-def get_object_contours(image:np.ndarray):
+def get_object_contours(image: np.ndarray):
     """
-     Extracts object contours from a grayscale image. Only contours exceeding a minimum length
-     are retained as object contours.
+    Extracts object contours from a grayscale image. Only contours exceeding a minimum length
+    are retained as object contours.
 
-     Parameters:
-         image (np.ndarray): A 2D NumPy array representing the grayscale image.
+    Parameters:
+        image (np.ndarray): A 2D NumPy array representing the grayscale image.
 
-     Returns:
-         list: A list of contours that exceed the minimum length threshold. Each contour is an array of points.
+    Returns:
+        list: A list of contours that exceed the minimum length threshold. Each contour is an array of points.
 
-     """
+    """
     to_ret_object_contours = []
 
     contours = compute_contours(image)
@@ -463,7 +485,7 @@ def get_object_contours(image:np.ndarray):
     return to_ret_object_contours
 
 
-def get_object_count(image:np.ndarray) -> int:
+def get_object_count(image: np.ndarray) -> int:
     """
     Calculates the number of objects in a grayscale image. Objects are defined as contours
     that exceed a minimum length threshold.
@@ -479,8 +501,7 @@ def get_object_count(image:np.ndarray) -> int:
     return len(object_contours)
 
 
-
-def get_object_portion(image:np.ndarray) -> float:
+def get_object_portion(image: np.ndarray) -> float:
     """
     Calculates the proportion of objects (large contours) to all detected contours in a grayscale image.
 
@@ -497,8 +518,7 @@ def get_object_portion(image:np.ndarray) -> float:
     return len(object_contours) / len(contours)
 
 
-
-def get_mean_object_similarity(image:np.ndarray) -> float:
+def get_mean_object_similarity(image: np.ndarray) -> float:
     """
     Calculates the mean similarity between all detected objects (contours) in a grayscale image.
     The similarity is computed using Hu moments. Lower values correspond to higher similarity.
@@ -518,17 +538,21 @@ def get_mean_object_similarity(image:np.ndarray) -> float:
     for i in range(len(object_contours)):
         for j in range(len(object_contours)):
             if i != j:
-                sim = cv.matchShapes(object_contours[i], object_contours[j], cv.CONTOURS_MATCH_I1, 0)
+                sim = cv.matchShapes(
+                    object_contours[i], object_contours[j], cv.CONTOURS_MATCH_I1, 0
+                )
                 similarity.append(sim)
 
     # calculate average
 
-    return (sum(similarity) / len(similarity)) if (
-                (np.isinf(sum(similarity)) is False) and (len(similarity) > 0)) else -1
+    return (
+        (sum(similarity) / len(similarity))
+        if ((np.isinf(sum(similarity)) is False) and (len(similarity) > 0))
+        else -1
+    )
 
 
-
-def compute_circularity(contours:list)-> list:
+def compute_circularity(contours: list) -> list:
     """
     Computes the circularity of each contour in a given list of contours.
     Circularity is defined as: \( 4 \pi \times \text{Area} / \text{Perimeter}^2 \),
@@ -549,7 +573,7 @@ def compute_circularity(contours:list)-> list:
         perim = cv.arcLength(contours[i], True)
         area = cv.contourArea(contours[i])
         if perim != 0:
-            circ = 4 * np.pi * area / perim ** 2
+            circ = 4 * np.pi * area / perim**2
             circularity.append(circ)
         else:
             circularity.append(0.0)
@@ -557,8 +581,7 @@ def compute_circularity(contours:list)-> list:
     return circularity
 
 
-
-def get_mean_object_circularity(image:np.ndarray)-> np.floating:
+def get_mean_object_circularity(image: np.ndarray) -> np.floating:
     """
     Calculates the mean circularity of all detected objects in a grayscale image.
     Circularity is computed for each object and averaged over all objects.
@@ -577,46 +600,55 @@ def get_mean_object_circularity(image:np.ndarray)-> np.floating:
     return np.mean(circularity)
 
 
-def detect_hand_crafted_shapes(contours:list, mode:Literal['countVertices', 'fitShapes']='fitShapes'):
+def detect_hand_crafted_shapes(
+    contours: list, mode: Literal["countVertices", "fitShapes"] = "fitShapes"
+):
     """
-       Detects the geometric type of each contour, such as triangle, square, circle, etc.,
-       based on handcrafted rules and the specified mode.
+    Detects the geometric type of each contour, such as triangle, square, circle, etc.,
+    based on handcrafted rules and the specified mode.
 
-       Parameters:
-           contours (list): A list of contours, where each contour is an array of points.
-           mode (Literal['countVertices', 'fitShapes'], optional): The detection mode:
-               - 'countVertices': Classifies shapes based on the number of vertices.
-               - 'fitShapes': Fits geometric shapes and evaluates their properties.
-             Defaults to 'fitShapes'.
+    Parameters:
+        contours (list): A list of contours, where each contour is an array of points.
+        mode (Literal['countVertices', 'fitShapes'], optional): The detection mode:
+            - 'countVertices': Classifies shapes based on the number of vertices.
+            - 'fitShapes': Fits geometric shapes and evaluates their properties.
+          Defaults to 'fitShapes'.
 
-       Returns:
-           tuple:
-               - labels (list): A list of integers representing the detected shape type for each contour.
-               - unique_labels (tuple): A tuple of shape type names corresponding to the labels.
+    Returns:
+        tuple:
+            - labels (list): A list of integers representing the detected shape type for each contour.
+            - unique_labels (tuple): A tuple of shape type names corresponding to the labels.
 
-       Modes:
-           - `countVertices`:
-               - triangle: 3 vertices
-               - quadrangle: 4 vertices
-               - ellipse: Circular contours with high circularity and > 4 vertices
-               - other: None of the above
-           - `fitShapes`:
-               - triangle: Closely matches a triangle's properties
-               - square: Rectangle with nearly equal sides
-               - rectangle: Non-square rectangle
-               - circle: High circularity and symmetry
-               - ellipse: Elliptical shape but not a circle
-               - other: None of the above
+    Modes:
+        - `countVertices`:
+            - triangle: 3 vertices
+            - quadrangle: 4 vertices
+            - ellipse: Circular contours with high circularity and > 4 vertices
+            - other: None of the above
+        - `fitShapes`:
+            - triangle: Closely matches a triangle's properties
+            - square: Rectangle with nearly equal sides
+            - rectangle: Non-square rectangle
+            - circle: High circularity and symmetry
+            - ellipse: Elliptical shape but not a circle
+            - other: None of the above
 
-       Notes:
-           - The function uses circularity and fitting methods to classify contours.
-           - Invalid modes will raise a ValueError.
-       """
+    Notes:
+        - The function uses circularity and fitting methods to classify contours.
+        - Invalid modes will raise a ValueError.
+    """
 
-    if mode == 'countVertices':
-        unique_labels = ('triangle', 'quadrangle', 'ellipse', 'other')
+    if mode == "countVertices":
+        unique_labels = ("triangle", "quadrangle", "ellipse", "other")
     else:
-        unique_labels = ('triangle', 'square', 'rectangle', 'circle', 'ellipse', 'other')
+        unique_labels = (
+            "triangle",
+            "square",
+            "rectangle",
+            "circle",
+            "ellipse",
+            "other",
+        )
 
     labels = []
     circularities = compute_circularity(contours)
@@ -625,7 +657,7 @@ def detect_hand_crafted_shapes(contours:list, mode:Literal['countVertices', 'fit
 
         num_vertices = len(contour)
 
-        if mode == 'countVertices':
+        if mode == "countVertices":
 
             if num_vertices == 3:
                 labels.append(0)
@@ -636,7 +668,7 @@ def detect_hand_crafted_shapes(contours:list, mode:Literal['countVertices', 'fit
             else:
                 labels.append(3)
 
-        if mode == 'fitShapes':
+        if mode == "fitShapes":
 
             # assume contour is 'other'
             label = 5
@@ -658,7 +690,11 @@ def detect_hand_crafted_shapes(contours:list, mode:Literal['countVertices', 'fit
                     triangle_area = cv.contourArea(triangle)
                     triangle_diff = abs(1 - (triangle_area / contour_area))
 
-                if triangle is not None and triangle_diff < rect_diff and triangle_diff < 0.1:
+                if (
+                    triangle is not None
+                    and triangle_diff < rect_diff
+                    and triangle_diff < 0.1
+                ):
                     # contour is a triangle
                     label = 0
                 elif rect_diff < triangle_diff and rect_diff < 0.1:
