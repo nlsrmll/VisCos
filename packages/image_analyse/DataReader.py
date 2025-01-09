@@ -1,16 +1,15 @@
-from enum import Enum
-from os import PathLike
-from typing import Tuple, List, Callable
-import numpy as np
 import os
 import re
+from enum import Enum
+from os import PathLike
+from typing import Callable, List, Tuple
 
-import pandas
-from PIL import Image, ImageOps
+import numpy as np
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import DataFrame
+from PIL import Image, ImageOps
 
-from packages.visualization.plotly import histogram_as_bar
+from packages.visualization.plotly import histogram
 
 IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png"]
 
@@ -42,7 +41,7 @@ class ImageDataFrame:
     def __getitem__(self, index: int) -> DataFrame:
         return self.data.loc[index]
 
-    def get_data_frame_obj(self) -> pandas.DataFrame:
+    def get_data_frame_obj(self) -> pd.DataFrame:
         """
         Returns the current dataset as a pandas DataFrame.
 
@@ -99,11 +98,11 @@ class ImageDataFrame:
             KeyError: If the specified column name does not exist in the dataset.
 
         Notes:
-            - The function utilizes `histogram_as_bar` to generate the visualization.
+            - The function utilizes `histogram` to generate the visualization.
             - The column data must exist in `self.data` and should be numerical or categorical to create a meaningful histogram.
         """
         try:
-            histogram_as_bar(
+            histogram(
                 df=self.data[["picture_names", column_name]],
                 title=f"Histogram - {column_name}",
                 x_label=column_name,
@@ -111,6 +110,14 @@ class ImageDataFrame:
             )
         except KeyError:
             raise KeyError(f"Column name: {column_name} does not exist.") from None
+
+
+class CSVDataFrame:
+    def __init__(self, dataPath: PathLike[str] | str):
+        self.path = dataPath
+        self.folder_name = self.path.split("/")[-1]
+        self.data = pd.read_csv(dataPath)
+        print(self.data.head())
 
 
 def get_images_and_convert_to_grayscale(

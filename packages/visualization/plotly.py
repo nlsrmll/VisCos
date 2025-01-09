@@ -1,5 +1,4 @@
 import datetime
-from typing import List, Tuple
 
 import numpy as np
 import pandas
@@ -7,28 +6,6 @@ import plotly.graph_objects as go
 
 
 def histogram(
-    data: List[Tuple[np.floating, str]],
-    title: str = "Default Title",
-    x_label: str = "X-Axis",
-    y_label: str = "Y-Axis",
-):
-
-    num_bins = 16
-
-    bin_size = (max(data) - min(data)) / num_bins
-
-    fig = go.Figure(
-        go.Histogram(
-            x=data,
-            xbins=dict(start=min(data), end=max(data), size=bin_size),
-            hoverinfo="x+y",
-        )
-    )
-    fig.update_layout(bargap=0.2, title=title, xaxis_title=x_label, yaxis_title=y_label)
-    fig.show()
-
-
-def histogram_as_bar(
     df: pandas.DataFrame,
     title: str = "Default Title",
     x_label: str = "X-Axis",
@@ -41,7 +18,7 @@ def histogram_as_bar(
 
     bins = np.linspace(min(data), max(data) + 1e-5, num_bins + 1)
 
-    # Substraction by -1 is necessary, because np.digitize is sorting from 1 to n and np.bincount counts from 0 to n
+    # Subtraction by -1 is necessary, because np.digitize is sorting from 1 to n and np.bincount counts from 0 to n
     bin_indices = np.digitize(data, bins) - 1
 
     elements_per_bin = [[] for _ in range(1, len(bins))]
