@@ -1,21 +1,291 @@
-from typing import List, Tuple
+import colorsys
+import random
+from typing import List, Literal, Tuple
 
+import pandas as pd
+import plotly.express.data
+import plotly.graph_objects as go
+from networkx.utils.misc import groups
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+
+from packages.visualization.plotly import base_fig, scatter
 
 
-# TODO: Assign value to data
-def find_clusters_with_elbow(
-    data, max_cluster_count: int
-) -> Tuple[List[int], List[float]]:
-    means = []
-    inertias = []
+def generate_colors(color_count: int) -> List[str]:
+    """
+    Generates a list of distinct colors in RGB format, evenly distributed across the HSV color space.
 
-    for cluster_count in range(1, max_cluster_count):
-        # TODO: Control over random seed for getting same results every time
-        k_means = KMeans(n_clusters=cluster_count, random_state=0)
-        k_means.fit(data)
+    Parameters:
+        color_count (int): The number of distinct colors to generate.
 
-        means.append(cluster_count)
-        inertias.append(k_means.inertia_)
+    Returns:
+        list: A list of color strings in the format "rgb(r, g, b)", where `r`, `g`, and `b` are values between 0 and 255.
 
-    return means, inertias
+    Notes:
+        - Colors are generated using the HSV color model and then converted to RGB.
+        - The `hue` value is evenly distributed across the range [0, 1] for `color_count` distinct colors.
+    """
+    colors = []
+    for i in range(color_count):
+        hue = i / color_count
+        rgb = colorsys.hsv_to_rgb(hue, 1.0, 0.85)
+        colors.append(f"rgb({rgb[0]*255}, {rgb[1]*255}, {rgb[2]*255})")
+    return colors
+
+
+class ClusterAnalyze:
+
+    def __init__(self, data: pd.DataFrame, seed: int = None, cluster_count: int = None):
+        self.data = data
+        self.original_data = data.copy()
+        self.seed = seed
+        self.cluster_count = cluster_count
+
+    def visualize_elbow_curve(self, cluster_count: int) -> None:
+        """
+        Visualizes the elbow curve to determine the optimal number of clusters for K-Means clustering.
+
+        Parameters:
+            cluster_count (int): The maximum number of clusters to evaluate.
+
+        Notes:
+            - The function computes the elbow curve using `calculate_elbow_curve` and visualizes it as a scatter plot.
+            - The x-axis represents the number of clusters, and the y-axis represents the inertia (sum of squared distances
+              of samples to their nearest cluster center).
+            - The "elbow" point in the curve suggests the optimal number of clusters for the dataset.
+        """
+        means, inertias = self.calculate_elbow_curve(cluster_count)
+
+        scatter(
+            means,
+            inertias,
+            title="Elbow Curve for K-Nearest Neighbors",
+            x_label="Cluster",
+            y_label="Inertia",
+        )
+
+    def calculate_elbow_curve(
+        self, cluster_count: int
+    ) -> Tuple[List[int], List[float]]:
+        """
+        Calculates the elbow curve for determining the optimal number of clusters in K-Means clustering.
+
+        Parameters:
+            cluster_count (int): The maximum number of clusters to evaluate.
+
+        Returns:
+            Tuple[List[int], List[float]]:
+                - A list of cluster counts.
+                - A list of corresponding inertia values (sum of squared distances of samples to their nearest cluster center).
+
+        Notes:
+            - The function iteratively fits K-Means for cluster counts ranging from 1 to `cluster_count`.
+            - The inertia values indicate how well the data is clustered. The "elbow" point in the curve can suggest
+              the optimal number of clusters.
+            - The `random_state` for reproducibility is determined by `self.seed` or a randomly generated value.
+        """
+        means = []
+        inertias = []
+
+        for cluster_count in range(1, cluster_count + 1):
+            k_means = KMeans(
+                n_clusters=cluster_count,
+                random_state=(
+                    self.seed if self.seed is not None else random.randint(0, 2**32 - 1)
+                ),
+            )
+
+            k_means.fit(self.data)
+
+            means.append(cluster_count)
+            inertias.append(k_means.inertia_)
+
+        return means, inertias
+
+    def calculate_knn(
+        self,
+        cluster_count: int = None,
+        pca: bool = True,
+    ) -> List[float]:
+        """
+        Calculates K-Nearest Neighbors (KNN) clusters using the K-Means algorithm, with optional PCA dimensionality reduction.
+
+        Parameters:
+            cluster_count (int): The number of clusters to compute.
+            pca (bool, optional): If True, applies PCA to reduce data to 2 dimensions before clustering. Defaults to False.
+
+        Returns:
+            List[float]: A list of cluster labels for each data point.
+
+        Notes:
+            - The `KMeans` algorithm is used for clustering, with the number of clusters specified by `cluster_count`.
+            - If `pca` is True, the dataset is reduced to 2 principal components using PCA, and the dimensions
+              are added to the dataset as `PCA_D1` and `PCA_D2`.
+            - The `random_state` for reproducibility is determined by `self.seed` or a randomly generated value.
+        """
+        if self.cluster_count is None and cluster_count is None:
+            raise ValueError()
+        if self.cluster_count is None:
+            self.cluster_count = cluster_count
+
+        k_means = KMeans(
+            n_clusters=cluster_count,
+            random_state=(
+                self.seed if self.seed is not None else random.randint(0, 2**32 - 1)
+            ),
+        )
+
+        if pca:
+            data_pca = PCA(n_components=2).fit_transform(self.data)
+            self.data["PCA_D1"] = data_pca[:, 0]
+            self.data["PCA_D2"] = data_pca[:, 1]
+
+            labels = k_means.fit_predict(self.data[["PCA_D1", "PCA_D2"]])
+        else:
+            labels = k_means.fit_predict(self.data)
+
+        self.data[f"cluster_k_{cluster_count}"] = labels
+
+        return labels
+
+    def visualize_knn(
+        self,
+        cluster_count: int,
+        pca_timing: Literal["before", "after"] = "before",
+    ) -> None:
+        """
+        Visualizes K-Nearest Neighbors (KNN) clusters with optional PCA dimensionality reduction.
+
+        Parameters:
+            cluster_count (int): The number of clusters to compute and visualize.
+            pca_timing (Literal["before", "after"], optional): Determines when PCA is applied:
+                - "before": PCA is applied before clustering.
+                - "after": PCA is applied after clustering. Defaults to "before".
+
+        Notes:
+            - If `pca_timing` is "before", the KNN clustering is computed on PCA-reduced data.
+            - If `pca_timing` is "after", the clustering is performed first, and then PCA reduces the data to 2 dimensions.
+            - The PCA-reduced dimensions are labeled as `PCA_D1` and `PCA_D2`.
+        """
+
+        self.cluster_count = cluster_count
+        if pca_timing == "before":
+            self.data[f"cluster_k_{cluster_count}"] = self.calculate_knn(
+                cluster_count, pca=True
+            )
+        else:
+            data_pca = PCA(n_components=2).fit_transform(self.data)
+            self.data["PCA_D1"] = data_pca[:, 0]
+            self.data["PCA_D2"] = data_pca[:, 1]
+
+        cluster_centers = (
+            self.data[["PCA_D1", "PCA_D2", f"cluster_k_{cluster_count}"]]
+            .groupby(f"cluster_k_{cluster_count}")
+            .mean()
+        )
+
+        groups = self.data[["PCA_D1", "PCA_D2", f"cluster_k_{cluster_count}"]].groupby(
+            f"cluster_k_{cluster_count}"
+        )
+
+        fig = base_fig(title="KNN Clusters")
+
+        fig.add_trace(
+            go.Scatter(
+                x=cluster_centers["PCA_D1"],
+                y=cluster_centers["PCA_D2"],
+                mode="markers",
+                marker=dict(color="black", symbol="x", size=12),
+                name="Centroids",
+                hovertemplate="%{text} <extra></extra>",
+                text=[
+                    f"Center of Cluster {cluster}"
+                    for cluster in cluster_centers.index.tolist()
+                ],
+            )
+        )
+        colors = generate_colors(cluster_count)
+        for idx, (group_name, df) in enumerate(groups):
+            fig.add_trace(
+                go.Scatter(
+                    x=df["PCA_D1"],
+                    y=df["PCA_D2"],
+                    mode="markers",
+                    marker=dict(color=colors[idx], size=8),
+                    name=f"Cluster {group_name}",
+                    hovertemplate="%{text} <extra></extra>",
+                    text=[
+                        f"Participant: {participant_id}"
+                        for participant_id in df.index.tolist()
+                    ],
+                )
+            )
+
+        fig.show()
+
+    def boxplot_of_cluster(self, cluster_number: int):
+
+        if self.cluster_count is None:
+            raise RuntimeError("Calculate KNN clusters first.")
+
+        if cluster_number >= self.cluster_count:
+            raise IndexError(
+                f"You are trying to access the cluster with the index: {cluster_number}. But there are there are only {self.cluster_count} clusters. [starting with Cluster 0]"
+            )
+
+        fig = base_fig(title=f"Boxplot of Cluster {cluster_number}")
+
+        pca_data = PCA(n_components=1).fit_transform(self.original_data)
+        pca_data = pd.DataFrame(pca_data, columns=["PCA"]).reset_index(drop=True)
+        pca_data["cluster"] = self.data[f"cluster_k_{self.cluster_count}"].reset_index(
+            drop=True
+        )
+        pca_data["participant"] = self.data.index.tolist()
+
+        cluster = pca_data[(pca_data["cluster"] == cluster_number)]
+        colors = generate_colors(self.cluster_count)
+
+        fig.add_trace(
+            go.Box(
+                y=cluster["PCA"],
+                boxpoints="all",
+                text=cluster["participant"],
+                hovertemplate="Participant: %{text} <extra></extra>",
+                name=f"Cluster {cluster_number}",
+                marker=dict(color=colors[cluster_number]),
+            )
+        )
+
+        fig.show()
+
+    def boxplot_all_clusters(self):
+
+        if self.cluster_count is None:
+            raise RuntimeError("Calculate KNN clusters first.")
+
+        fig = base_fig(title="Boxplot of all clusters", x_label="Cluster Number")
+
+        pca_data = PCA(n_components=1).fit_transform(self.original_data)
+
+        pca_data = pd.DataFrame(pca_data, columns=["PCA"]).reset_index(drop=True)
+        pca_data["cluster"] = self.data[f"cluster_k_{self.cluster_count}"].reset_index(
+            drop=True
+        )
+        pca_data["participant"] = self.data.index.tolist()
+
+        groups = pca_data.groupby(f"cluster")
+        colors = generate_colors(self.cluster_count)
+        for idx, (group_name, df) in enumerate(groups):
+            fig.add_trace(
+                go.Box(
+                    y=df["PCA"],
+                    name=f"Cluster {group_name}",
+                    text=df["participant"],
+                    boxpoints="all",
+                    hovertemplate="Participant: %{text} <extra></extra>",
+                    marker=dict(color=colors[idx]),
+                )
+            )
+
+        fig.show()

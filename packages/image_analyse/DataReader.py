@@ -112,12 +112,28 @@ class ImageDataFrame:
             raise KeyError(f"Column name: {column_name} does not exist.") from None
 
 
-class CSVDataFrame:
-    def __init__(self, dataPath: PathLike[str] | str):
-        self.path = dataPath
+class CSVDataFrame(pd.DataFrame):
+    def __init__(self, path: PathLike[str] | str, transpose: bool = False):
+        data = pd.read_csv(path)
+
+        if transpose:
+            data = data.T
+
+        super().__init__(data)
+        self.path = path
         self.folder_name = self.path.split("/")[-1]
-        self.data = pd.read_csv(dataPath)
-        print(self.data.head())
+
+        print(self.head(2))
+
+    def remove_column(self, name: str, **kwargs: str):
+        self.drop(columns=[name, kwargs], inplace=True)
+
+    def remove_row(self, index: int | str, *other_indices: str | int):
+        self.drop(index=index, inplace=True)
+
+        if other_indices:
+            for idx in other_indices:
+                self.drop(index=idx, inplace=True)
 
 
 def get_images_and_convert_to_grayscale(
