@@ -1,15 +1,15 @@
 import colorsys
 import random
 from typing import List, Literal, Tuple
-
+from PIL import Image
 import pandas as pd
-import plotly.express.data
+import plotly.express
 import plotly.graph_objects as go
-from networkx.utils.misc import groups
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
-
+import os
 from packages.visualization.plotly import base_fig, scatter
+from matplotlib import pyplot as plt
 
 
 def generate_colors(color_count: int) -> List[str]:
@@ -41,6 +41,7 @@ class ClusterAnalyze:
         self.original_data = data.copy()
         self.seed = seed
         self.cluster_count = cluster_count
+        self.image_analysis: List[pd.DataFrame] = []
 
     def visualize_elbow_curve(self, cluster_count: int) -> None:
         """
@@ -145,7 +146,7 @@ class ClusterAnalyze:
         else:
             labels = k_means.fit_predict(self.data)
 
-        self.data[f"cluster_k_{cluster_count}"] = labels
+        self.data["cluster"] = labels
 
         return labels
 
@@ -171,23 +172,17 @@ class ClusterAnalyze:
 
         self.cluster_count = cluster_count
         if pca_timing == "before":
-            self.data[f"cluster_k_{cluster_count}"] = self.calculate_knn(
-                cluster_count, pca=True
-            )
+            self.data["cluster"] = self.calculate_knn(cluster_count, pca=True)
         else:
             data_pca = PCA(n_components=2).fit_transform(self.data)
             self.data["PCA_D1"] = data_pca[:, 0]
             self.data["PCA_D2"] = data_pca[:, 1]
 
         cluster_centers = (
-            self.data[["PCA_D1", "PCA_D2", f"cluster_k_{cluster_count}"]]
-            .groupby(f"cluster_k_{cluster_count}")
-            .mean()
+            self.data[["PCA_D1", "PCA_D2", "cluster"]].groupby("cluster").mean()
         )
 
-        groups = self.data[["PCA_D1", "PCA_D2", f"cluster_k_{cluster_count}"]].groupby(
-            f"cluster_k_{cluster_count}"
-        )
+        groups = self.data[["PCA_D1", "PCA_D2", "cluster"]].groupby("cluster")
 
         fig = base_fig(title="KNN Clusters")
 
@@ -238,9 +233,7 @@ class ClusterAnalyze:
 
         pca_data = PCA(n_components=1).fit_transform(self.original_data)
         pca_data = pd.DataFrame(pca_data, columns=["PCA"]).reset_index(drop=True)
-        pca_data["cluster"] = self.data[f"cluster_k_{self.cluster_count}"].reset_index(
-            drop=True
-        )
+        pca_data["cluster"] = self.data["cluster"].reset_index(drop=True)
         pca_data["participant"] = self.data.index.tolist()
 
         cluster = pca_data[(pca_data["cluster"] == cluster_number)]
@@ -269,12 +262,10 @@ class ClusterAnalyze:
         pca_data = PCA(n_components=1).fit_transform(self.original_data)
 
         pca_data = pd.DataFrame(pca_data, columns=["PCA"]).reset_index(drop=True)
-        pca_data["cluster"] = self.data[f"cluster_k_{self.cluster_count}"].reset_index(
-            drop=True
-        )
+        pca_data["cluster"] = self.data["cluster"].reset_index(drop=True)
         pca_data["participant"] = self.data.index.tolist()
 
-        groups = pca_data.groupby(f"cluster")
+        groups = pca_data.groupby("cluster")
         colors = generate_colors(self.cluster_count)
         for idx, (group_name, df) in enumerate(groups):
             fig.add_trace(
@@ -289,3 +280,93 @@ class ClusterAnalyze:
             )
 
         fig.show()
+
+    def boxplot_clustered_image_perception(self):
+
+        fig = base_fig(
+            title="Boxplot of clustered images",
+            x_label="Cluster Number",
+            y_label="Mean Participants Rating",
+        )
+
+        # Gruppieren der Daten nach Clustern
+        grouped_data = self.data.groupby("cluster")
+        colors = generate_colors(self.cluster_count)
+        for idx, (group_name, df) in enumerate(grouped_data):
+            # Entfernung der Spalten PCA und Cluster
+            df.drop(columns=["PCA_D1", "PCA_D2", "cluster"], inplace=True)
+            df = df.mean()
+
+            fig.add_trace(
+                go.Box(
+                    y=df,
+                    name=f"Cluster {idx}",
+                    boxpoints="all",
+                    text=df.index.to_list(),
+                    hovertemplate="Picture: %{text} <extra></extra>",
+                    marker=dict(color=colors[idx]),
+                )
+            )
+
+        fig.show()
+
+    def find_outliers(self):
+        grouped_data = self.data.groupby("cluster")
+
+        for idx, (group_name, df) in enumerate(grouped_data):
+            df.drop(columns=["PCA_D1", "PCA_D2", "cluster"], inplace=True)
+
+            image_df = pd.DataFrame(data=df.mean(), columns=["means"])
+            image_df["cluster_mean"] = df.to_numpy().mean()
+            image_df["cluster_std"] = df.to_numpy().std()
+            image_df["1xstd_outliers"] = (
+                image_df["means"] > (image_df["cluster_mean"] + image_df["cluster_std"])
+            ) | (
+                image_df["means"] < (image_df["cluster_mean"] - image_df["cluster_std"])
+            )
+
+            self.image_analysis.append(image_df)
+
+        self.show_pictures()
+
+    def show_pictures(self):
+        base_path = os.path.join(os.getcwd(), "data/images")
+
+        image_set = []
+
+        for idx in range(len(self.image_analysis)):
+            group_outliers = self.image_analysis[idx]
+
+            filtered_outliers = group_outliers[group_outliers["1xstd_outliers"] == True]
+            image_numbers = filtered_outliers.index.tolist()
+
+            images = [
+                Image.open(os.path.join(base_path, f"{image:05}.png")).convert("RGB")
+                for image in image_numbers
+            ]
+
+            image_set.append(images)
+
+        number_of_rows = self.cluster_count
+        max_number_of_columns = max(len(subarray) for subarray in image_set)
+        subplot_counter = 1
+
+        fig = plt.figure()
+        for idx, images_of_one_cluster in enumerate(image_set):
+            for image in images_of_one_cluster:
+                plt.subplot(
+                    number_of_rows,
+                    max_number_of_columns,
+                    subplot_counter,
+                )
+                plt.imshow(image)
+                plt.axis("off")
+                plt.title("Hallo")
+
+                subplot_counter += 1
+            index_offset_to_new_row = (
+                max_number_of_columns * (idx + 1) - subplot_counter + 1
+            )
+            subplot_counter += index_offset_to_new_row
+
+        plt.show()
