@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import os
+
+from packages.clustering.model.ImageAnalyzer import ImageAnalyzer
 from packages.visualization.plotly import base_fig, scatter
 from matplotlib import pyplot as plt
 
@@ -41,7 +43,7 @@ class ClusterAnalyze:
         self.original_data = data.copy()
         self.seed = seed
         self.cluster_count = cluster_count
-        self.image_analysis: List[pd.DataFrame] = []
+        self.image_analysis: List[ImageAnalyzer] = []
 
     def visualize_elbow_curve(self, cluster_count: int) -> None:
         """
@@ -361,11 +363,19 @@ class ClusterAnalyze:
                 )
                 plt.imshow(image)
                 plt.axis("off")
-                plt.title("Hallo")
+                plt.text(0.5, 0.01, "Hallo", ha="center")
 
                 subplot_counter += 1
             index_offset_to_new_row = (
                 max_number_of_columns * (idx + 1) - subplot_counter + 1
+            )
+            fig.text(
+                0.5,
+                0.9 - idx * 0.28,
+                f"Cluster {idx}",
+                ha="center",
+                fontsize=11,
+                weight="bold",
             )
             subplot_counter += index_offset_to_new_row
 
