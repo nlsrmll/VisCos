@@ -4,13 +4,13 @@ VisCos ist ein Projekt zur Visualisierung und Analyse von Daten mit Hilfe von Cl
 
 ## Voraussetzungen ✅
 
-Um das Projekt auszuführen, benötigen Sie folgende Software:
+Um das Projekt auszuführen, wird folgende Software benötigt:
 
 1. **Python**: Version 3.10 oder höher 🐍
 2. **Poetry**: Ein Paketmanager für Python 📦
 3. **Git**: Um das Repository zu klonen, falls noch nicht lokal verfügbar 🌐
 
-Alle benötigten Abhängigkeiten sind in der pyproject.toml Datei aufgelistet und werden automatisch mit Poetry installiert. Einige wichtige Bibliotheken sind:
+Alle Abhängigkeiten sind in der pyproject.toml aufgelistet und werden automatisch mit Poetry installiert. Einige wichtige Bibliotheken sind:
 - plotly für Visualisierungen 📈
 - scikit-learn für Clustering 🔍
 - Weitere hilfreiche Python-Pakete, die das Projekt unterstützt 📜
