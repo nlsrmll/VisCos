@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 import os
 
 from packages.clustering.model.ImageAnalyzer import ImageAnalyzer
-from packages.visualization.plotly import base_fig, scatter
+from packages.visualization.plotly import base_fig, scatter, line_chart
 from matplotlib import pyplot as plt
 
 
@@ -40,6 +40,8 @@ class ClusterAnalyze:
 
     def __init__(self, data: pd.DataFrame, seed: int = None, cluster_count: int = None):
         self.data = data
+        # TODO: Kann man hier nicht einfach die Columnspalten speichern,
+        # sodass man nur diese aus dem DF herausnimmt? Spart speicher
         self.original_data = data.copy()
         self.seed = seed
         self.cluster_count = cluster_count
@@ -60,10 +62,10 @@ class ClusterAnalyze:
         """
         means, inertias = self.calculate_elbow_curve(cluster_count)
 
-        scatter(
+        line_chart(
             means,
             inertias,
-            title="Elbow Curve for K-Nearest Neighbors",
+            title="Elbow Curvsssse for K-Nearest Neighbors",
             x_label="Cluster",
             y_label="Inertia",
         )
@@ -171,7 +173,6 @@ class ClusterAnalyze:
             - If `pca_timing` is "after", the clustering is performed first, and then PCA reduces the data to 2 dimensions.
             - The PCA-reduced dimensions are labeled as `PCA_D1` and `PCA_D2`.
         """
-
         self.cluster_count = cluster_count
         if pca_timing == "before":
             self.data["cluster"] = self.calculate_knn(cluster_count, pca=True)
@@ -321,6 +322,7 @@ class ClusterAnalyze:
             image_df = pd.DataFrame(data=df.mean(), columns=["means"])
             image_df["cluster_mean"] = df.to_numpy().mean()
             image_df["cluster_std"] = df.to_numpy().std()
+
             image_df["1xstd_outliers"] = (
                 image_df["means"] > (image_df["cluster_mean"] + image_df["cluster_std"])
             ) | (
@@ -341,10 +343,16 @@ class ClusterAnalyze:
 
             filtered_outliers = group_outliers[group_outliers["1xstd_outliers"] == True]
             image_numbers = filtered_outliers.index.tolist()
-
             images = [
-                Image.open(os.path.join(base_path, f"{image:05}.png")).convert("RGB")
-                for image in image_numbers
+                {
+                    "data": Image.open(
+                        os.path.join(base_path, f"{image:05}.png")
+                    ).convert("RGB"),
+                    "name": f"{image:05}.png",
+                    "path": os.path.join(base_path, f"{image:05}.png"),
+                    "mean": filtered_outliers.iloc[idx]["means"],
+                }
+                for idx, image in enumerate(image_numbers)
             ]
 
             image_set.append(images)
@@ -353,7 +361,8 @@ class ClusterAnalyze:
         max_number_of_columns = max(len(subarray) for subarray in image_set)
         subplot_counter = 1
 
-        fig = plt.figure()
+        fig = plt.figure(facecolor="white")
+
         for idx, images_of_one_cluster in enumerate(image_set):
             for image in images_of_one_cluster:
                 plt.subplot(
@@ -361,9 +370,29 @@ class ClusterAnalyze:
                     max_number_of_columns,
                     subplot_counter,
                 )
-                plt.imshow(image)
+                plt.imshow(image["data"])
                 plt.axis("off")
-                plt.text(0.5, 0.01, "Hallo", ha="center")
+                # Text unten (z. B. Bildname)
+                plt.text(
+                    0.5,
+                    -0.1,
+                    image["name"],
+                    ha="center",
+                    fontsize=8,
+                    transform=plt.gca().transAxes,
+                )
+
+                # Text oben (z. B. Zusatzinformation)
+                plt.text(
+                    0.5,
+                    1.05,
+                    # TODO: herausfinden ob negativ = stressig ist oder anders herum.
+                    "positiv" if image["mean"] > 0 else "negativ",
+                    color="red" if image["mean"] < 0 else "green",
+                    ha="center",
+                    fontsize=8,
+                    transform=plt.gca().transAxes,
+                )
 
                 subplot_counter += 1
             index_offset_to_new_row = (
@@ -379,4 +408,14 @@ class ClusterAnalyze:
             )
             subplot_counter += index_offset_to_new_row
 
+        # Globaler Text unten
+        fig.text(
+            0.5,
+            0.01,
+            "Upper and lower border equals σ±x̄",
+            ha="center",
+            fontsize=8,
+        )
+
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
         plt.show()
