@@ -10,4 +10,4 @@ cluster_analyzer.seed = 42
 
 cluster_analyzer.calculate_knn(cluster_count=3)
 
-cluster_analyzer.find_outliers()
+cluster_analyzer.boxplot_clustered_image_perception()

@@ -134,6 +134,42 @@ def scatter(
     fig.show()
 
 
+def line_chart(
+    x: List[numbers.Number],
+    y: List[numbers.Number],
+    title: str = "Default Title",
+    x_label: str = "X-Axis",
+    y_label: str = "Y-Axis",
+    **kwargs,
+):
+    """
+    Creates and displays a scatter plot using Plotly with customizable labels, title, and additional parameters.
+
+    Parameters:
+        x (List[numbers.Number]): A list of numerical values for the x-axis.
+        y (List[numbers.Number]): A list of numerical values for the y-axis.
+        title (str, optional): Title of the scatter plot. Defaults to "Default Title".
+        x_label (str, optional): Label for the x-axis. Defaults to "X-Axis".
+        y_label (str, optional): Label for the y-axis. Defaults to "Y-Axis".
+        **kwargs: Additional keyword arguments passed to `go.Scatter` for customization (e.g., marker size, color).
+
+    Notes:
+        - The function uses `base_fig` to create the figure layout and adds a `Scatter` trace for the data.
+        - The scatter plot is displayed immediately using `fig.show()`.
+        - An annotation with the creation timestamp is added below the plot.
+    """
+    fig = base_fig(
+        title=title,
+        x_label=x_label,
+        y_label=y_label,
+        annotation_text=f"Created at: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')} ",
+    )
+
+    fig.add_trace(go.Scatter(x=x, y=y, mode="lines+markers", **kwargs))
+
+    fig.show()
+
+
 def base_fig(
     title: str = "Default Title",
     x_label: str = "X-Axis",

@@ -10,7 +10,7 @@ from sklearn.decomposition import PCA
 import os
 
 from packages.clustering.model.ImageAnalyzer import ImageAnalyzer
-from packages.visualization.plotly import base_fig, scatter
+from packages.visualization.plotly import base_fig, scatter, line_chart
 from matplotlib import pyplot as plt
 
 
@@ -62,10 +62,10 @@ class ClusterAnalyze:
         """
         means, inertias = self.calculate_elbow_curve(cluster_count)
 
-        scatter(
+        line_chart(
             means,
             inertias,
-            title="Elbow Curve for K-Nearest Neighbors",
+            title="Elbow Curvsssse for K-Nearest Neighbors",
             x_label="Cluster",
             y_label="Inertia",
         )
@@ -361,7 +361,8 @@ class ClusterAnalyze:
         max_number_of_columns = max(len(subarray) for subarray in image_set)
         subplot_counter = 1
 
-        fig = plt.figure()
+        fig = plt.figure(facecolor="white")
+
         for idx, images_of_one_cluster in enumerate(image_set):
             for image in images_of_one_cluster:
                 plt.subplot(
@@ -374,7 +375,7 @@ class ClusterAnalyze:
                 # Text unten (z. B. Bildname)
                 plt.text(
                     0.5,
-                    -0.2,
+                    -0.1,
                     image["name"],
                     ha="center",
                     fontsize=8,
@@ -406,6 +407,15 @@ class ClusterAnalyze:
                 weight="bold",
             )
             subplot_counter += index_offset_to_new_row
+
+        # Globaler Text unten
+        fig.text(
+            0.5,
+            0.01,
+            "Upper and lower border equals σ±x̄",
+            ha="center",
+            fontsize=8,
+        )
 
         plt.tight_layout(rect=[0, 0, 1, 0.95])
         plt.show()
