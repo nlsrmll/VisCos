@@ -7,7 +7,7 @@ from numpy.fft import fftshift, fft2
 from skimage.feature import local_binary_pattern
 
 
-def get_intensity(image: np.ndarray) -> np.floating:
+def get_mean_brightness(image: np.ndarray) -> np.floating:
     """
     Calculates the average intensity of an image.
 

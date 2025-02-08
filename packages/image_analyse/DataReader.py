@@ -123,8 +123,6 @@ class CSVDataFrame(pd.DataFrame):
         self.path = path
         self.folder_name = self.path.split("/")[-1]
 
-        print(self.head(2))
-
     def remove_column(self, name: str, **kwargs: str):
         self.drop(columns=[name, kwargs], inplace=True)
 

@@ -4,7 +4,10 @@ from typing import List
 
 import numpy as np
 import pandas
+import pandas as pd
 import plotly.graph_objects as go
+import plotly.figure_factory as ff
+import scipy.cluster.hierarchy as sch
 
 
 def histogram(
@@ -226,3 +229,43 @@ def base_fig(
     )
 
     return fig
+
+
+def boxplot(
+    column: str,
+    dfs: List[pd.DataFrame] = None,
+) -> go.Figure:
+    fig = base_fig(
+        title=f"Boxplot of the {column.replace('_', ' ')}",
+        x_label="Image Set",
+        y_label=column.replace("_", " "),
+    )
+
+    for idx, df in enumerate(dfs):
+
+        fig.add_trace(
+            go.Box(
+                y=df[column],
+                text=df["picture_names"],
+                boxpoints="all",
+                hovertemplate="Picture: %{text} <extra></extra>",
+                name=idx,
+            )
+        )
+
+    return fig
+
+
+def dendrogram(
+    data: pandas.DataFrame,
+    title: str = "Default Title",
+):
+    fig = ff.create_dendrogram(
+        X=data, linkagefun=lambda x: sch.linkage(x, method="ward")
+    )
+
+    fig.update_layout(
+        title=dict(text=title.title(), xanchor="center", yanchor="top", x=0.5),
+    )
+
+    fig.show()
