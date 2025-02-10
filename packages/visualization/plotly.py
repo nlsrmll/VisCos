@@ -8,6 +8,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
 import scipy.cluster.hierarchy as sch
+from matplotlib.pyplot import subplot_tool
+from plotly.subplots import make_subplots
 
 
 def histogram(
@@ -229,6 +231,49 @@ def base_fig(
     )
 
     return fig
+
+
+def base_subplot(
+    title: str = "Default Title",
+    x_label: str = "X-Axis",
+    y_label: str = "Y-Axis",
+    annotation_text: str = "",
+    rows: int = 1,
+    columns: int = 1,
+) -> go.Figure:
+
+    subplot_fig = make_subplots(rows=rows, cols=columns, shared_yaxes=True)
+
+    subplot_fig.update_layout(
+        title=dict(text=title.title(), xanchor="center", yanchor="top", x=0.5),
+        yaxis=dict(
+            title=y_label.title(),
+            ticklen=5,
+            tickwidth=1,
+            tickcolor="black",
+            ticks="outside",
+        ),
+        xaxis=dict(
+            title=x_label.title(),
+            ticklen=5,
+            title_standoff=2,
+            tickwidth=1,
+            tickcolor="black",
+            ticks="outside",
+        ),
+    )
+
+    subplot_fig.add_annotation(
+        text=annotation_text,
+        xref="paper",
+        yref="paper",
+        x=0.5,
+        y=-0.2,
+        showarrow=False,
+        align="center",
+    )
+
+    return subplot_fig
 
 
 def boxplot(

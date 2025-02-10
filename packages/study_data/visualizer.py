@@ -12,7 +12,7 @@ from packages.utils.colors import generate_color_palett
 from packages.utils.io import get_full_image_name
 from packages.utils.plot_utils import plot_images
 from packages.utils.settings import settings
-from packages.visualization.plotly import base_fig
+from packages.visualization.plotly import base_fig, histogram, base_subplot
 
 
 class StudyDataVisualizer:
@@ -29,7 +29,6 @@ class StudyDataVisualizer:
         ]
 
     # TODO: Im namen anzeigen, wann die PCA gemacht wurde
-
     def show_raw_data(self, dim_reduction_method: Literal["pca", "tsne", "umap"]):
         fig = base_fig()
         column = "PCA"
@@ -46,18 +45,22 @@ class StudyDataVisualizer:
 
         fig.show()
 
-    def cluster_as_scatter(self):
+    def cluster_as_scatter(
+        self, clustering: Literal["kMean", "hierarchical"] = "kMean"
+    ):
 
         if self._analyzer.pca is None:
             raise ValueError("PCA is not available.")
 
         columns = [f"PCA_D{idx +1}" for idx in range(self._analyzer.pca.n_components)]
-        columns.append("cluster")
-        groups = self._analyzer.data[columns].groupby("cluster")
+        columns.append(f"{clustering}_labels")
+        groups = self._analyzer.data[columns].groupby(f"{clustering}_labels")
 
-        cluster_centers = self._analyzer.data[columns].groupby("cluster").mean()
+        cluster_centers = (
+            self._analyzer.data[columns].groupby(f"{clustering}_labels").mean()
+        )
 
-        fig = base_fig(title="kMeans Cluster")
+        fig = base_fig(title=f"{clustering} Clustering".title())
 
         if self._analyzer.pca.n_components == 2:
             fig.add_trace(
@@ -156,7 +159,7 @@ class StudyDataVisualizer:
 
         fig.show()
 
-    def pca_most_influential_images(self, top_images: int = 1, pca_index: int = 1):
+    def pca_most_influential_images(self, image_number: int = 1, pca_index: int = 0):
         if self._analyzer.pca is None:
             raise ValueError("PCA is not available.")
 
@@ -165,15 +168,137 @@ class StudyDataVisualizer:
                 f"There are only {self._analyzer.pca.n_components} components. You are trying to access the {pca_index}. component"
             )
 
-        most_influential_indices = np.argpartition(
-            np.abs(self._analyzer.pca.components_[0]), -top_images
-        )[-top_images:]
+        influential_indices = np.argpartition(
+            np.abs(self._analyzer.pca.components_[pca_index]), -image_number
+        )[-image_number:]
 
         most_influential_images = [
-            Image.open(
-                os.path.join(settings.IMAGE_BASE_PATH, get_full_image_name(pic_elem))
-            ).convert("RGB")
-            for pic_elem in most_influential_indices
+            {
+                "data": Image.open(
+                    os.path.join(settings.IMAGE_BASE_PATH, get_full_image_name(idx))
+                ).convert("RGB"),
+                "image_name": get_full_image_name(idx),
+                "component_value": self._analyzer.pca.components_[pca_index][idx],
+            }
+            for idx in influential_indices
         ]
 
-        plot_images(most_influential_images)
+        plot_images(
+            most_influential_images[::-1],
+            "Meist einflussreiche Bilder (PCA-Komponente)",
+        )
+
+    def pca_least_influential_images(self, image_number: int = 1, pca_index: int = 0):
+        if self._analyzer.pca is None:
+            raise ValueError("PCA is not available.")
+
+        if pca_index > self._analyzer.pca.n_components:
+            raise IndexError(
+                f"There are only {self._analyzer.pca.n_components} components. You are trying to access the {pca_index}. component"
+            )
+
+        influential_indices = np.argpartition(
+            np.abs(self._analyzer.pca.components_[pca_index]), image_number
+        )[:image_number]
+
+        most_influential_images = [
+            {
+                "data": Image.open(
+                    os.path.join(settings.IMAGE_BASE_PATH, get_full_image_name(idx))
+                ).convert("RGB"),
+                "image_name": get_full_image_name(idx),
+                "component_value": self._analyzer.pca.components_[pca_index][idx],
+            }
+            for idx in influential_indices
+        ]
+
+        plot_images(
+            most_influential_images,
+            "Geringst einflussreiche Bilder (PCA-Komponente)",
+        )
+
+    def show_cluster_voting_for_picture(self, picture_number: int):
+
+        grouped_clusters = self._analyzer.data.groupby("kMean_labels")
+
+        fig = base_fig(
+            title=f"Cluster Voting for Picture {picture_number:05}",
+            x_label=f"Cluster Number",
+            y_label="Cluster Mean Voting",
+        )
+
+        for cluster_id, group in grouped_clusters:
+            picture_voting = group[picture_number]
+
+            if picture_voting is None:
+                raise KeyError(
+                    f"Could not find the picture with the ID {picture_number} in the Dataset."
+                )
+
+            cluster_mean = picture_voting.mean()
+            cluster_std = picture_voting.std()
+
+            fig.add_trace(
+                go.Bar(
+                    x=[cluster_id],
+                    y=[cluster_mean],
+                    name=f"Cluster {cluster_id}",
+                    error_y=dict(type="data", array=[cluster_std]),
+                )
+            )
+
+        fig.show()
+
+    def show_cluster_votings(self):
+        grouped_clusters = self._analyzer.data.groupby("kMean_labels")
+        picture_column_names = self._analyzer.get_original_columns()
+        fig = base_fig()
+
+        traces = []
+        for picture_idx, picture_name in enumerate(picture_column_names):
+            visibility = [False] * len(picture_column_names)
+            visibility[picture_idx] = True
+
+            for cluster_id, group in grouped_clusters:
+                cluster_mean = group[picture_idx].mean()
+                cluster_std = group[picture_idx].std()
+
+                traces.append(
+                    go.Bar(
+                        x=[f"{get_full_image_name(picture_name)}"],
+                        y=[cluster_mean],
+                        name=f"Cluster {cluster_id}",
+                        error_y=dict(type="data", array=[cluster_std]),
+                        visible=(picture_idx == 0),
+                    )
+                )
+
+        steps = []
+
+        for idx, picture_name in enumerate(picture_column_names):
+            full_image_name = get_full_image_name(picture_name)
+            step = dict(
+                method="update",
+                args=[
+                    {"visible": [full_image_name in t.x for t in traces]},
+                    {"title": f"Cluster Voting for {full_image_name}"},
+                ],
+                label=full_image_name,
+            )
+            steps.append(step)
+
+        sliders = [
+            dict(
+                active=0,
+                currentvalue={"prefix": "Picture: "},
+                pad={"t": len(picture_column_names)},
+                steps=steps,
+            )
+        ]
+
+        fig.add_traces(traces)
+        fig.update_layout(
+            sliders=sliders,
+            barmode="group",
+        )
+        fig.show()

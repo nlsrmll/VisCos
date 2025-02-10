@@ -32,6 +32,9 @@ class StudyAnalyzer:
     def update_cache(self):
         self.__original_columns = self.data.columns.tolist()
 
+    def get_original_columns(self):
+        return self.__original_columns
+
     def visualize_elbow_curve(self, cluster_count: int) -> None:
 
         means = []
@@ -133,15 +136,29 @@ class StudyAnalyzer:
         else:
             labels = k_means.fit_predict(self.data)
 
-        self.data["cluster"] = labels
+        self.data["kMean_labels"] = labels
 
     def calculate_hierarchical_clustering(self, cluster_count: int):
-        hc_labels = sch.fcluster(
-            sch.linkage(self.data[self.__original_columns], method="ward"),
-            self.cluster_count,
-            criterion="maxclust",
-        )
-        self.data["hc_labels"] = hc_labels
+        self.cluster_count = cluster_count
+
+        if self.pca is not None:
+            hc_labels = sch.fcluster(
+                sch.linkage(
+                    self.data[
+                        [f"PCA_D{idx+1}" for idx in range(self.pca.n_components)]
+                    ],
+                    method="ward",
+                ),
+                cluster_count,
+                criterion="maxclust",
+            )
+        else:
+            hc_labels = sch.fcluster(
+                sch.linkage(self.data[self.__original_columns], method="ward"),
+                cluster_count,
+                criterion="maxclust",
+            )
+        self.data["hierarchical_labels"] = hc_labels
 
     def boxplot_clustered_image_perception(self):
 
