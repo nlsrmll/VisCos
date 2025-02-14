@@ -254,6 +254,12 @@ class StudyDataVisualizer:
         picture_column_names = self._analyzer.get_original_columns()
         fig = base_fig()
 
+        dataframe_max = (
+            self._analyzer.data[self._analyzer.get_original_columns()].max().max()
+        )
+        dataframe_min = (
+            self._analyzer.data[self._analyzer.get_original_columns()].min().min()
+        )
         traces = []
         for picture_idx, picture_name in enumerate(picture_column_names):
             visibility = [False] * len(picture_column_names)
@@ -282,6 +288,21 @@ class StudyDataVisualizer:
                 args=[
                     {"visible": [full_image_name in t.x for t in traces]},
                     {"title": f"Cluster Voting for {full_image_name}"},
+                    {
+                        "images": [
+                            dict(
+                                source=f"file://{os.path.join(settings.IMAGE_BASE_PATH, get_full_image_name('0'))}",
+                                xref="paper",
+                                yref="paper",
+                                x=0.8,
+                                y=0.8,
+                                sizex=0.2,
+                                sizey=0.2,
+                                xanchor="right",
+                                yanchor="top",
+                            )
+                        ]
+                    },
                 ],
                 label=full_image_name,
             )
@@ -300,5 +321,20 @@ class StudyDataVisualizer:
         fig.update_layout(
             sliders=sliders,
             barmode="group",
+            yaxis=dict(range=[dataframe_min, dataframe_max]),
+        )
+
+        fig.add_layout_image(
+            dict(
+                source=f"file:///Users/nilsramolla/Documents/TH/Master/Thesis/Git/VisCos/data/images/00000.png",
+                xref="paper",
+                yref="paper",
+                x=1,
+                y=1,
+                sizex=0.2,
+                sizey=0.2,
+                xanchor="right",
+                yanchor="top",
+            )
         )
         fig.show()

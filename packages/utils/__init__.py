@@ -1,4 +1,5 @@
 import os
+
 from packages.utils.settings import settings
 
 AvailableImages = sorted(os.listdir(settings.IMAGE_BASE_PATH))

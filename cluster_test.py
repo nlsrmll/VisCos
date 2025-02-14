@@ -14,5 +14,4 @@ study_visualizer = StudyDataVisualizer(analyzer)
 analyzer.seed = 42
 analyzer.calculate_pca(2)
 analyzer.calculate_kmeans(3)
-
 study_visualizer.show_cluster_votings()
